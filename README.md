@@ -54,7 +54,7 @@ Montix — работающий сервис, а не прототип. Поль
 
 <table>
 <tr>
-<td width="62%"><img src="screenshots/05-pricing.png" alt="Тарифы"><br><sub><b>Тарифы.</b> Цена генерации считается до нажатия кнопки, а списывается по факту.</sub></td>
+<td width="62%"><img src="screenshots/05-tariffs.png" alt="Тарифы"><br><sub><b>Тарифы.</b> Цена генерации считается до нажатия кнопки, а списывается по факту.</sub></td>
 <td width="38%"><img src="screenshots/06-mobile.png" alt="Мобильная версия"><br><sub><b>Телефон.</b> Композер закреплён снизу и не перекрывает результат.</sub></td>
 </tr>
 </table>
