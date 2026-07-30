@@ -1,0 +1,21 @@
+# Секреты — никогда
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*credentials*
+*secret*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Редакторы и ОС
+.DS_Store
+.idea/
+.vscode/
+*.swp

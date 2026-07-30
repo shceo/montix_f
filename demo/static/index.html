@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Montix — демо генерации</title>
+<style>
+  :root {
+    --bg: #08080a;
+    --panel: #131317;
+    --line: rgba(255,255,255,.10);
+    --text: #f2f2f4;
+    --muted: rgba(242,242,244,.52);
+    --accent: #e8c559;
+    --danger: #ffb3c0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 64px;
+  }
+  header { text-align: center; margin-bottom: 34px; }
+  .logo { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .logo span { color: var(--accent); }
+  .sub { color: var(--muted); margin-top: 6px; font-size: 14px; }
+  main { width: 100%; max-width: 720px; }
+  .composer {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    padding: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  }
+  textarea {
+    width: 100%; min-height: 84px; resize: vertical; border: 0; outline: 0;
+    background: transparent; color: var(--text); font: inherit; padding: 6px 4px;
+  }
+  textarea::placeholder { color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .hint { color: var(--muted); font-size: 13px; margin-right: auto; }
+  button {
+    border: 0; border-radius: 999px; padding: 11px 22px; font: 600 14px/1 inherit;
+    background: var(--accent); color: #17140a; cursor: pointer; transition: filter .15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: default; }
+  .note {
+    margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 14px;
+    border: 1px solid rgba(255,179,192,.30); background: rgba(255,179,192,.09);
+    color: var(--danger); display: none;
+  }
+  .note.show { display: block; }
+  .result { margin-top: 24px; display: none; }
+  .result.show { display: block; }
+  .result img {
+    width: 100%; border-radius: 16px; border: 1px solid var(--line); display: block;
+  }
+  .caption { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .spinner {
+    width: 15px; height: 15px; border: 2px solid rgba(23,20,10,.30);
+    border-top-color: #17140a; border-radius: 50%; display: inline-block;
+    vertical-align: -2px; margin-right: 8px; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .samples { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .samples b { color: var(--muted); font-weight: 400; font-size: 13px; width: 100%; }
+  .chip {
+    border: 1px solid var(--line); background: transparent; color: var(--text);
+    border-radius: 999px; padding: 7px 13px; font-size: 13px; cursor: pointer;
+  }
+  .chip:hover { background: rgba(255,255,255,.06); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 40px; text-align: center; }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mont<span>ix</span></div>
+  <div class="sub">Демоверсия: текст → изображение</div>
+</header>
+
+<main>
+  <form class="composer" id="form">
+    <textarea id="prompt" placeholder="Опишите, что должно быть на изображении" autofocus></textarea>
+    <div class="row">
+      <span class="hint" id="hint">Модель подставляется сервером, ключ в браузер не попадает</span>
+      <button id="go" type="submit">Создать</button>
+    </div>
+  </form>
+
+  <div class="note" id="note"></div>
+
+  <div class="samples">
+    <b>Попробуйте:</b>
+    <button class="chip" type="button">кот в сапогах из мультфильма на черепичной крыше, лунный свет</button>
+    <button class="chip" type="button">закат над морем, длиннофокусный объектив, тёплые тона</button>
+    <button class="chip" type="button">старый трамвай на мокрой мостовой, неон, ночь</button>
+  </div>
+
+  <div class="result" id="result">
+    <img id="image" alt="Результат генерации">
+    <div class="caption" id="caption"></div>
+  </div>
+</main>
+
+<footer>
+  Витрина проекта <a href="https://montix.ai">montix.ai</a> ·
+  <a href="https://github.com/shceo/montix_f">исходники демо</a>
+</footer>
+
+<script>
+  const form = document.getElementById("form");
+  const prompt = document.getElementById("prompt");
+  const go = document.getElementById("go");
+  const note = document.getElementById("note");
+  const result = document.getElementById("result");
+  const image = document.getElementById("image");
+  const caption = document.getElementById("caption");
+  const hint = document.getElementById("hint");
+
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      prompt.value = chip.textContent.trim();
+      prompt.focus();
+    });
+  });
+
+  function showNote(text) {
+    note.textContent = text;
+    note.classList.add("show");
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = prompt.value.trim();
+    note.classList.remove("show");
+    if (!text) {
+      showNote("Напишите хотя бы пару слов — без описания генерировать нечего.");
+      return;
+    }
+
+    go.disabled = true;
+    go.innerHTML = '<span class="spinner"></span>Генерирую…';
+    const started = Date.now();
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Сервер уже привёл текст к понятному виду — показываем как есть.
+        showNote(data.detail || "Не получилось. Попробуйте ещё раз.");
+        return;
+      }
+
+      image.src = data.url;
+      result.classList.add("show");
+      const seconds = ((Date.now() - started) / 1000).toFixed(1);
+      caption.textContent = data.stub
+        ? `Заглушка: ключ провайдера не задан. Осталось ${data.remaining} попыток в этом часе.`
+        : `Готово за ${seconds} с. Осталось ${data.remaining} попыток в этом часе.`;
+    } catch {
+      showNote("Сервер демо недоступен. Проверьте, что приложение запущено.");
+    } finally {
+      go.disabled = false;
+      go.textContent = "Создать";
+    }
+  });
+
+  fetch("/api/health")
+    .then((r) => r.json())
+    .then((h) => {
+      if (!h.provider_key) {
+        hint.textContent = "Ключ не задан — работает режим заглушки";
+      }
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>
